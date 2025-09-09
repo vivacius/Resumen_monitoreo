@@ -8,7 +8,7 @@ from folium.plugins import MarkerCluster, AntPath
 from streamlit_folium import st_folium
 from geopy.distance import geodesic
 
-# 🎨 Estilos CSS fijos (claro, como original + mejoras solicitadas)
+# 🎨 Estilos CSS fijos (simplificado y funcional)
 st.markdown("""
 <style>
 .stApp { 
@@ -43,21 +43,6 @@ st.markdown("""
 .stTabs [aria-selected="true"] { 
     background-color: #1f4e79; 
     color: white; 
-}
-
-/* ✅ FORZAR QUE EL CONTENIDO DENTRO DE LAS PESTAÑAS OCUPEN TODO EL ANCHO */
-.stTabs [data-baseweb="tab-panel"] {
-    padding: 0 !important;
-}
-.stTabs [data-baseweb="tab-panel"] > div {
-    width: 100% !important;
-    max-width: none !important;
-    padding: 1rem 0 !important; /* Reduce padding vertical, elimina horizontal */
-}
-
-/* Opcional: hacer que los dataframes y gráficos dentro de tabs también se expandan */
-.stTabs .stDataFrame, .stTabs .stPlotlyChart, .stTabs .stPyplot {
-    width: 100% !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -109,122 +94,128 @@ if archivo_cargado:
     if pestaña == "📊 Análisis de Productividad":
         st.header("📊 Análisis de Productividad Acumulada y Horaria")
 
-        tabs = st.tabs(["📌 Último Estado", "📈 % Productivo por Equipo", "⏳ Evolución Horaria", "📋 Clasificación Acumulada"])
+        # Envolver tabs en container para forzar ancho completo
+        with st.container():
+            tabs = st.tabs(["📌 Último Estado", "📈 % Productivo por Equipo", "⏳ Evolución Horaria", "📋 Clasificación Acumulada"])
 
         with tabs[0]:
-            st.subheader("📌 Resumen por Grupo de Operación a una Hora Específica")
-            hora_opciones = sorted(df_filtrado_global['Hora'].dt.time.unique())
-            if not hora_opciones:
-                st.warning("No hay horas disponibles con los filtros aplicados.")
-            else:
-                hora_str = st.selectbox("Seleccione la hora de evaluación", options=hora_opciones)
-                fecha = st.date_input("Seleccione la fecha", value=df_filtrado_global['Fecha/Hora'].min().date())
-                hora_obj = pd.Timestamp.combine(fecha, hora_str.replace(minute=0, second=0, microsecond=0))
-
-                df_hora = df_filtrado_global[df_filtrado_global['Hora'] == hora_obj]
-                if df_hora.empty:
-                    st.warning(f"No hay datos para la fecha y hora seleccionada: {hora_obj}")
+            with st.container():  # Forzar expansión
+                st.subheader("📌 Resumen por Grupo de Operación a una Hora Específica")
+                hora_opciones = sorted(df_filtrado_global['Hora'].dt.time.unique())
+                if not hora_opciones:
+                    st.warning("No hay horas disponibles con los filtros aplicados.")
                 else:
-                    ultimo_registro = df_hora.sort_values(['Equipo', 'Fecha/Hora']).groupby('Equipo').tail(1)
-                    resumen = ultimo_registro.groupby(['Grupo Operacion'])['Equipo'].nunique().reset_index(name='Cantidad')
-                    colores_personalizados = {
-                        'MANTENIMIENTO': 'blue',
-                        'PERDIDA': 'red',
-                        'PRODUCTIVO': 'green',
-                        'NAO CADASTRADO':'grey'
-                    }
-                    fig, ax = plt.subplots(figsize=(8, 2))  # Gráfico más pequeño
-                    sns.barplot(data=resumen, x='Grupo Operacion', y='Cantidad', palette=colores_personalizados, ax=ax)
-                    ax.set_title("Equipos por Estado Operativo")
-                    ax.set_ylim(0, resumen['Cantidad'].max() * 1.2)
-                    for container in ax.containers:
-                        ax.bar_label(container, label_type='edge', padding=3)
-                    st.pyplot(fig)
-                    st.dataframe(resumen)
+                    hora_str = st.selectbox("Seleccione la hora de evaluación", options=hora_opciones)
+                    fecha = st.date_input("Seleccione la fecha", value=df_filtrado_global['Fecha/Hora'].min().date())
+                    hora_obj = pd.Timestamp.combine(fecha, hora_str.replace(minute=0, second=0, microsecond=0))
+
+                    df_hora = df_filtrado_global[df_filtrado_global['Hora'] == hora_obj]
+                    if df_hora.empty:
+                        st.warning(f"No hay datos para la fecha y hora seleccionada: {hora_obj}")
+                    else:
+                        ultimo_registro = df_hora.sort_values(['Equipo', 'Fecha/Hora']).groupby('Equipo').tail(1)
+                        resumen = ultimo_registro.groupby(['Grupo Operacion'])['Equipo'].nunique().reset_index(name='Cantidad')
+                        colores_personalizados = {
+                            'MANTENIMIENTO': 'blue',
+                            'PERDIDA': 'red',
+                            'PRODUCTIVO': 'green',
+                            'NAO CADASTRADO':'grey'
+                        }
+                        fig, ax = plt.subplots(figsize=(10, 3))  # Aumentado tamaño
+                        sns.barplot(data=resumen, x='Grupo Operacion', y='Cantidad', palette=colores_personalizados, ax=ax)
+                        ax.set_title("Equipos por Estado Operativo")
+                        ax.set_ylim(0, resumen['Cantidad'].max() * 1.2)
+                        for container in ax.containers:
+                            ax.bar_label(container, label_type='edge', padding=3)
+                        st.pyplot(fig)
+                        st.dataframe(resumen, use_container_width=True)
 
         with tabs[1]:
-            st.subheader("📈 % del Tiempo que los Equipos Fueron Productivos")
+            with st.container():  # Forzar expansión
+                st.subheader("📈 % del Tiempo que los Equipos Fueron Productivos")
 
-            tiempo_total = df_filtrado_global.groupby('Equipo')['tiempo_seg'].sum().reset_index(name='tiempo_total_seg')
-            tiempo_prod = df_filtrado_global[df_filtrado_global['Grupo Operacion'] == 'PRODUCTIVO'].groupby('Equipo')['tiempo_seg'].sum().reset_index(name='tiempo_productivo_seg')
-            resumen = pd.merge(tiempo_total, tiempo_prod, on='Equipo', how='left').fillna(0)
-            resumen['porcentaje_productivo'] = (resumen['tiempo_productivo_seg'] / resumen['tiempo_total_seg']) * 100
-            resumen['tiempo_total_horas'] = resumen['tiempo_total_seg'] / 3600
-            resumen['tiempo_productivo_horas'] = resumen['tiempo_productivo_seg'] / 3600
+                tiempo_total = df_filtrado_global.groupby('Equipo')['tiempo_seg'].sum().reset_index(name='tiempo_total_seg')
+                tiempo_prod = df_filtrado_global[df_filtrado_global['Grupo Operacion'] == 'PRODUCTIVO'].groupby('Equipo')['tiempo_seg'].sum().reset_index(name='tiempo_productivo_seg')
+                resumen = pd.merge(tiempo_total, tiempo_prod, on='Equipo', how='left').fillna(0)
+                resumen['porcentaje_productivo'] = (resumen['tiempo_productivo_seg'] / resumen['tiempo_total_seg']) * 100
+                resumen['tiempo_total_horas'] = resumen['tiempo_total_seg'] / 3600
+                resumen['tiempo_productivo_horas'] = resumen['tiempo_productivo_seg'] / 3600
 
-            fig, ax = plt.subplots(figsize=(8, 2))  # Gráfico más pequeño
-            ax.hist(resumen['porcentaje_productivo'], bins=10, color='#4fc3f7', edgecolor='black')
-            ax.set_title('Distribución de Productividad (%)')
-            ax.set_xlabel('% Productivo')
-            ax.set_ylabel('Cantidad de Equipos')
-            st.pyplot(fig)
-            st.dataframe(resumen[['Equipo', 'tiempo_total_horas', 'tiempo_productivo_horas', 'porcentaje_productivo']])
+                fig, ax = plt.subplots(figsize=(10, 3))  # Aumentado tamaño
+                ax.hist(resumen['porcentaje_productivo'], bins=10, color='#4fc3f7', edgecolor='black')
+                ax.set_title('Distribución de Productividad (%)')
+                ax.set_xlabel('% Productivo')
+                ax.set_ylabel('Cantidad de Equipos')
+                st.pyplot(fig)
+                st.dataframe(resumen[['Equipo', 'tiempo_total_horas', 'tiempo_productivo_horas', 'porcentaje_productivo']], use_container_width=True)
 
         with tabs[2]:
-            st.subheader("⏳ Productividad por Hora")
+            with st.container():  # Forzar expansión
+                st.subheader("⏳ Productividad por Hora")
 
-            grupo_opciones = ["Todos"] + sorted(df_filtrado_global['grupo_equipo'].dropna().unique())
-            grupo_filtro = st.selectbox("Filtrar por Grupo de Equipo / Frente", options=grupo_opciones)
+                grupo_opciones = ["Todos"] + sorted(df_filtrado_global['grupo_equipo'].dropna().unique())
+                grupo_filtro = st.selectbox("Filtrar por Grupo de Equipo / Frente", options=grupo_opciones)
 
-            df_filtrado = df_filtrado_global if grupo_filtro == "Todos" else df_filtrado_global[df_filtrado_global['grupo_equipo'] == grupo_filtro]
+                df_filtrado = df_filtrado_global if grupo_filtro == "Todos" else df_filtrado_global[df_filtrado_global['grupo_equipo'] == grupo_filtro]
 
-            tiempos = df_filtrado.groupby(['Hora', 'Grupo Operacion'])['tiempo_seg'].sum().reset_index()
-            total_hora = tiempos.groupby('Hora')['tiempo_seg'].sum().reset_index(name='tiempo_total')
-            tiempos_prod = tiempos[tiempos['Grupo Operacion'] == 'PRODUCTIVO']
-            resumen_hora = tiempos_prod.merge(total_hora, on='Hora', how='right').fillna(0)
-            resumen_hora['porcentaje_productivo'] = (resumen_hora['tiempo_seg'] / resumen_hora['tiempo_total']) * 100
+                tiempos = df_filtrado.groupby(['Hora', 'Grupo Operacion'])['tiempo_seg'].sum().reset_index()
+                total_hora = tiempos.groupby('Hora')['tiempo_seg'].sum().reset_index(name='tiempo_total')
+                tiempos_prod = tiempos[tiempos['Grupo Operacion'] == 'PRODUCTIVO']
+                resumen_hora = tiempos_prod.merge(total_hora, on='Hora', how='right').fillna(0)
+                resumen_hora['porcentaje_productivo'] = (resumen_hora['tiempo_seg'] / resumen_hora['tiempo_total']) * 100
 
-            st.line_chart(resumen_hora.set_index('Hora')['porcentaje_productivo'])
+                st.line_chart(resumen_hora.set_index('Hora')['porcentaje_productivo'])
 
         with tabs[3]:
-            st.subheader("📋 Clasificación de Rendimiento Acumulado")
+            with st.container():  # Forzar expansión
+                st.subheader("📋 Clasificación de Rendimiento Acumulado")
 
-            df_prod = df_filtrado_global[df_filtrado_global['Grupo Operacion'] == 'PRODUCTIVO']
-            tiempo_prod = df_prod.groupby('Equipo')['tiempo_seg'].sum().reset_index(name='tiempo_productivo_seg')
-            tiempo_total = df_filtrado_global.groupby('Equipo')['tiempo_seg'].sum().reset_index(name='tiempo_total_seg')
-            resumen = pd.merge(tiempo_total, tiempo_prod, on='Equipo', how='left').fillna(0)
-            resumen['porcentaje_productivo'] = (resumen['tiempo_productivo_seg'] / resumen['tiempo_total_seg']) * 100
+                df_prod = df_filtrado_global[df_filtrado_global['Grupo Operacion'] == 'PRODUCTIVO']
+                tiempo_prod = df_prod.groupby('Equipo')['tiempo_seg'].sum().reset_index(name='tiempo_productivo_seg')
+                tiempo_total = df_filtrado_global.groupby('Equipo')['tiempo_seg'].sum().reset_index(name='tiempo_total_seg')
+                resumen = pd.merge(tiempo_total, tiempo_prod, on='Equipo', how='left').fillna(0)
+                resumen['porcentaje_productivo'] = (resumen['tiempo_productivo_seg'] / resumen['tiempo_total_seg']) * 100
 
-            resumen['clasificacion'] = pd.cut(
-                resumen['porcentaje_productivo'],
-                bins=[-1, 60, 80, 100],
-                labels=['Bajo', 'Medio', 'Alto']
-            )
+                resumen['clasificacion'] = pd.cut(
+                    resumen['porcentaje_productivo'],
+                    bins=[-1, 60, 80, 100],
+                    labels=['Bajo', 'Medio', 'Alto']
+                )
 
-            col1, col2 = st.columns(2)
-            with col1:
-                clasif_counts = resumen['clasificacion'].value_counts().sort_index()
-                fig1, ax1 = plt.subplots(figsize=(5, 3))  # Gráfico más pequeño
-                ax1.pie(clasif_counts, labels=clasif_counts.index, autopct='%1.1f%%',
-                        colors=['#ef5350', '#ffa726', '#66bb6a'], startangle=90)
-                ax1.axis('equal')
-                st.pyplot(fig1)
-            with col2:
-                resumen_equipo_clasif = resumen[['Equipo', 'clasificacion']]
-                df_con_clasif = df_filtrado_global.merge(resumen_equipo_clasif, on='Equipo', how='left')
+                col1, col2 = st.columns(2)
+                with col1:
+                    clasif_counts = resumen['clasificacion'].value_counts().sort_index()
+                    fig1, ax1 = plt.subplots(figsize=(5, 3))
+                    ax1.pie(clasif_counts, labels=clasif_counts.index, autopct='%1.1f%%',
+                            colors=['#ef5350', '#ffa726', '#66bb6a'], startangle=90)
+                    ax1.axis('equal')
+                    st.pyplot(fig1)
+                with col2:
+                    resumen_equipo_clasif = resumen[['Equipo', 'clasificacion']]
+                    df_con_clasif = df_filtrado_global.merge(resumen_equipo_clasif, on='Equipo', how='left')
 
-                df_con_clasif['tiempo_prod_seg'] = 0
-                df_con_clasif.loc[df_con_clasif['Grupo Operacion'] == 'PRODUCTIVO', 'tiempo_prod_seg'] = df_con_clasif['tiempo_seg']
+                    df_con_clasif['tiempo_prod_seg'] = 0
+                    df_con_clasif.loc[df_con_clasif['Grupo Operacion'] == 'PRODUCTIVO', 'tiempo_prod_seg'] = df_con_clasif['tiempo_seg']
 
-                resumen_grupo = df_con_clasif.groupby(['grupo_equipo', 'clasificacion'])[['tiempo_prod_seg']].sum().reset_index()
+                    resumen_grupo = df_con_clasif.groupby(['grupo_equipo', 'clasificacion'])[['tiempo_prod_seg']].sum().reset_index()
 
-                total_por_grupo = resumen_grupo.groupby('grupo_equipo')['tiempo_prod_seg'].sum().reset_index()
-                total_por_grupo = total_por_grupo.rename(columns={'tiempo_prod_seg': 'tiempo_total_grupo'})
+                    total_por_grupo = resumen_grupo.groupby('grupo_equipo')['tiempo_prod_seg'].sum().reset_index()
+                    total_por_grupo = total_por_grupo.rename(columns={'tiempo_prod_seg': 'tiempo_total_grupo'})
 
-                resumen_grupo = resumen_grupo.merge(total_por_grupo, on='grupo_equipo')
-                resumen_grupo['porcentaje_productivo'] = (resumen_grupo['tiempo_prod_seg'] / resumen_grupo['tiempo_total_grupo']) * 100
+                    resumen_grupo = resumen_grupo.merge(total_por_grupo, on='grupo_equipo')
+                    resumen_grupo['porcentaje_productivo'] = (resumen_grupo['tiempo_prod_seg'] / resumen_grupo['tiempo_total_grupo']) * 100
 
-                tabla_pivot = resumen_grupo.pivot(index='grupo_equipo', columns='clasificacion', values='porcentaje_productivo').fillna(0)
-                tabla_pivot = tabla_pivot[['Bajo', 'Medio', 'Alto']]
+                    tabla_pivot = resumen_grupo.pivot(index='grupo_equipo', columns='clasificacion', values='porcentaje_productivo').fillna(0)
+                    tabla_pivot = tabla_pivot[['Bajo', 'Medio', 'Alto']]
 
-                fig2, ax2 = plt.subplots(figsize=(5, 3))  # Gráfico más pequeño
-                tabla_pivot.plot(kind='bar', stacked=True, color=['#ef5350', '#ffa726', '#66bb6a'], ax=ax2)
-                ax2.set_ylabel('Porcentaje Productivo (%)')
-                ax2.set_title('Clasificación por Grupo de Equipo')
-                st.pyplot(fig2)
+                    fig2, ax2 = plt.subplots(figsize=(6, 4))  # Aumentado tamaño
+                    tabla_pivot.plot(kind='bar', stacked=True, color=['#ef5350', '#ffa726', '#66bb6a'], ax=ax2)
+                    ax2.set_ylabel('Porcentaje Productivo (%)')
+                    ax2.set_title('Clasificación por Grupo de Equipo')
+                    st.pyplot(fig2)
 
-            resumen_sorted = resumen.sort_values(by='porcentaje_productivo', ascending=False)
-            st.dataframe(resumen_sorted[['Equipo', 'porcentaje_productivo', 'clasificacion']], use_container_width=True)
+                resumen_sorted = resumen.sort_values(by='porcentaje_productivo', ascending=False)
+                st.dataframe(resumen_sorted[['Equipo', 'porcentaje_productivo', 'clasificacion']], use_container_width=True)
 
     elif pestaña == "🚨 Alertas equipos parados o en mantenimiento":
         st.header("🚨 Equipos con Alta Inactividad")
@@ -255,7 +246,8 @@ if archivo_cargado:
         else:
             st.info("No se detectaron equipos con inactividad crítica.")
 
-        st.dataframe(alertas)
+        st.dataframe(alertas, use_container_width=True)
+
         # =====================================================
         # 📄 GENERADOR DE REPORTE EN PDF - VERSIÓN STREAMLIT CLOUD
         # =====================================================
@@ -266,13 +258,11 @@ if archivo_cargado:
 
         # Función para generar el gráfico de último estado (reutiliza tu lógica actual)
         def generar_grafico_ultimo_estado_para_pdf():
-            # Reutilizamos la lógica que ya tienes arriba en tabs[0]
             hora_opciones = sorted(df_filtrado_global['Hora'].dt.time.unique())
             if not hora_opciones:
                 return None
 
-            # Tomamos la última hora disponible por defecto para el reporte
-            hora_str = hora_opciones[-1]  # Última hora del día
+            hora_str = hora_opciones[-1]
             fecha = df_filtrado_global['Fecha/Hora'].min().date()
             hora_obj = pd.Timestamp.combine(fecha, hora_str.replace(minute=0, second=0, microsecond=0))
 
@@ -296,33 +286,27 @@ if archivo_cargado:
             for container in ax.containers:
                 ax.bar_label(container, label_type='edge', padding=3)
 
-            # Guardar gráfico en buffer de memoria
             buf = io.BytesIO()
             fig.savefig(buf, format='png', dpi=150, bbox_inches='tight')
             plt.close(fig)
             buf.seek(0)
             return buf
 
-               # Función para generar el PDF (versión FINAL PULIDA - Streamlit Cloud)
+        # Función para generar el PDF (versión FINAL PULIDA - Streamlit Cloud)
         def generar_pdf_reporte(grafico_buf, alertas_df, comentarios_agrupados, grupos_seleccionados):
             pdf = FPDF()
             pdf.add_page()
 
-            # Usar fuentes estándar (no requiere archivos externos)
             pdf.set_font("Arial", "B", 16)
-
-            # Título principal
             pdf.cell(0, 10, "REPORTE DE ALERTAS OPERATIVAS", ln=True, align='C')
             pdf.ln(5)
 
-            # Metadatos
             pdf.set_font("Arial", "", 10)
             fecha_gen = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
             pdf.cell(0, 8, f"Fecha de generación: {fecha_gen}", ln=True)
             pdf.cell(0, 8, f"Grupos incluidos: {', '.join(grupos_seleccionados)}", ln=True)
             pdf.ln(10)
 
-            # Insertar gráfico si existe
             if grafico_buf:
                 temp_img = "temp_grafico_reporte.png"
                 with open(temp_img, "wb") as f:
@@ -330,11 +314,8 @@ if archivo_cargado:
                 pdf.image(temp_img, x=15, w=180)
                 pdf.ln(10)
                 import os
-                os.remove(temp_img)  # Limpiar archivo temporal
+                os.remove(temp_img)
 
-            # ==============================================
-            # PRIMERO: Resumen de Comentarios Agrupados
-            # ==============================================
             pdf.set_font("Arial", "B", 12)
             pdf.cell(0, 10, "RESUMEN DE COMENTARIOS AGRUPADOS", ln=True)
             pdf.ln(3)
@@ -342,13 +323,11 @@ if archivo_cargado:
             pdf.set_font("Arial", "", 10)
             if not comentarios_agrupados.empty:
                 for _, fila in comentarios_agrupados.iterrows():
-                    # Eliminar cualquier emoji y texto entre [ ] → solo texto limpio
                     comentario_limpio = fila['comentario']
                     comentario_limpio = comentario_limpio.replace('🛠', '').replace('[MANTENIMIENTO]', '').strip()
                     comentario_limpio = comentario_limpio.replace('🟥', '').replace('[PARADO]', '').strip()
                     comentario_limpio = comentario_limpio.replace('🚨', '').replace('[INACTIVO >80%]', '').strip()
                     comentario_limpio = comentario_limpio.replace('🔔', '').replace('[ALTA INACTIVIDAD]', '').strip()
-                    # Limpiar espacios dobles o iniciales/finale
                     comentario_limpio = ' '.join(comentario_limpio.split())
                     pdf.cell(0, 8, f"- Equipos {fila['equipos']}: {comentario_limpio}", ln=True)
             else:
@@ -356,9 +335,6 @@ if archivo_cargado:
 
             pdf.ln(10)
 
-            # ==============================================
-            # SEGUNDO: Tabla Detallada de Alertas
-            # ==============================================
             pdf.set_font("Arial", "B", 12)
             pdf.cell(0, 10, "TABLA DETALLADA DE ALERTAS", ln=True)
             pdf.ln(3)
@@ -371,7 +347,6 @@ if archivo_cargado:
 
             pdf.set_font("Arial", "", 10)
             for _, row in alertas_df.iterrows():
-                # Mismo proceso de limpieza para la tabla
                 comentario_limpio = row['comentario']
                 comentario_limpio = comentario_limpio.replace('🛠', '').replace('[MANTENIMIENTO]', '').strip()
                 comentario_limpio = comentario_limpio.replace('🟥', '').replace('[PARADO]', '').strip()
@@ -384,27 +359,22 @@ if archivo_cargado:
 
             pdf.ln(15)
 
-            # Pie de página actualizado
             pdf.set_font("Arial", "I", 8)
             pdf.cell(0, 10, "Generado automáticamente con Monitoreo de Productividad v1.0 - Scorrea AP Maquinaria y equipos", 0, 1, 'C')
 
-            return bytes(pdf.output(dest='S'))  # Garantiza compatibilidad
+            return bytes(pdf.output(dest='S'))
+
         # Botón para generar y descargar PDF
         if st.button("📥 Generar Reporte PDF"):
             with st.spinner("Generando reporte..."):
-                # 1. Generar gráfico
                 buf_grafico = generar_grafico_ultimo_estado_para_pdf()
-
-                # 2. Preparar tabla de alertas (solo columnas clave)
                 alertas_para_pdf = alertas[['% alerta total', 'comentario']].copy()
 
-                # 3. Preparar comentarios agrupados (el mismo que ya muestras)
                 if not comentarios.empty:
                     agrupado_para_pdf = alertas.groupby('comentario').apply(lambda df: ', '.join(df.index.astype(str))).reset_index(name='equipos')
                 else:
                     agrupado_para_pdf = pd.DataFrame({'comentario': [], 'equipos': []})
 
-                # 4. Generar PDF
                 try:
                     pdf_bytes = generar_pdf_reporte(
                         buf_grafico,
@@ -415,7 +385,6 @@ if archivo_cargado:
 
                     st.success("✅ ¡Reporte generado con éxito!")
 
-                    # 5. Botón de descarga
                     st.download_button(
                         label="⬇️ Descargar Reporte Operativo (PDF)",
                         data=pdf_bytes,
@@ -424,6 +393,7 @@ if archivo_cargado:
                     )
                 except Exception as e:
                     st.error(f"Error al generar el PDF: {e}")
+
     elif pestaña == "📍 Recorrido y Hora Inicio Labor":
         st.header("📍 Visualización de Recorridos y Hora de Inicio de Labores")
 
@@ -523,12 +493,13 @@ if archivo_cargado:
                 else:
                     st.warning("No se encontró velocidad > 7 km/h para este equipo. No se pueden calcular inicio/fin de labores.")
 
-                # 🗺️ MAPA REDIMENSIONADO — más compacto
-                st_folium(mapa, width=1700, height=600)
+                # 🗺️ MAPA RESPONSIVO
+                st_folium(mapa, width="100%", height=600)
 
 else:
     st.info("⬅️ Por favor, cargue un archivo para comenzar.")
 #python -m streamlit run c:/Users/sacor/Downloads/resumen_monitoreo3.py
+
 
 
 
