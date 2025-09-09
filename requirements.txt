@@ -2,3 +2,6 @@ streamlit
 pandas
 matplotlib
 seaborn
+folium
+streamlit-folium
+geopy
