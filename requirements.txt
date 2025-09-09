@@ -5,3 +5,4 @@ seaborn
 folium
 streamlit-folium
 geopy
+fpdf2
