@@ -8,6 +8,15 @@ from folium.plugins import MarkerCluster, AntPath
 from streamlit_folium import st_folium
 from geopy.distance import geodesic
 
+# ===============================
+# ⚙️ CONFIGURACIÓN GENERAL
+# ===============================
+st.set_page_config(
+    page_title="Monitoreo de Productividad",
+    layout="wide",   # 👈 Forzar ancho completo
+    initial_sidebar_state="expanded"
+)
+
 # 🎨 Estilos CSS fijos (simplificado y funcional)
 st.markdown("""
 <style>
@@ -17,7 +26,7 @@ st.markdown("""
     font-family: 'Segoe UI', sans-serif; 
 }
 
-/* Sidebar completo: fondo azul oscuro y texto blanco en TODO */
+/* Sidebar completo */
 [data-testid="stSidebar"] {
     width: 280px;
     background-color: #1f4e79;
@@ -29,8 +38,21 @@ st.markdown("""
     font-weight: 500;
 }
 
-/* Estilos de las pestañas principales */
+/* Forzar ancho máximo del contenido */
+.block-container {
+    max-width: 95% !important;
+    padding-left: 2rem;
+    padding-right: 2rem;
+}
+
+/* Tabs principales */
+.stTabs [data-baseweb="tab-list"] {
+    display: flex;
+    justify-content: stretch;
+}
 .stTabs [data-baseweb="tab"] {
+    flex: 1; /* 👈 Cada pestaña ocupa el mismo ancho */
+    text-align: center;
     background-color: #e8f0f7; 
     color: #000; 
     border-radius: 10px 10px 0 0; 
@@ -46,6 +68,7 @@ st.markdown("""
 }
 </style>
 """, unsafe_allow_html=True)
+
 
 @st.cache_data
 def cargar_datos(archivo):
@@ -499,6 +522,7 @@ if archivo_cargado:
 else:
     st.info("⬅️ Por favor, cargue un archivo para comenzar.")
 #python -m streamlit run c:/Users/sacor/Downloads/resumen_monitoreo3.py
+
 
 
 
