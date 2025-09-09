@@ -124,7 +124,7 @@ if archivo_cargado:
             resumen['tiempo_total_horas'] = resumen['tiempo_total_seg'] / 3600
             resumen['tiempo_productivo_horas'] = resumen['tiempo_productivo_seg'] / 3600
 
-            fig, ax = plt.subplots(figsize=(6, 3))  # Gráfico más pequeño
+            fig, ax = plt.subplots(figsize=(8, 2))  # Gráfico más pequeño
             ax.hist(resumen['porcentaje_productivo'], bins=10, color='#4fc3f7', edgecolor='black')
             ax.set_title('Distribución de Productividad (%)')
             ax.set_xlabel('% Productivo')
@@ -166,7 +166,7 @@ if archivo_cargado:
             col1, col2 = st.columns(2)
             with col1:
                 clasif_counts = resumen['clasificacion'].value_counts().sort_index()
-                fig1, ax1 = plt.subplots(figsize=(3, 3))  # Gráfico más pequeño
+                fig1, ax1 = plt.subplots(figsize=(3, 2))  # Gráfico más pequeño
                 ax1.pie(clasif_counts, labels=clasif_counts.index, autopct='%1.1f%%',
                         colors=['#ef5350', '#ffa726', '#66bb6a'], startangle=90)
                 ax1.axis('equal')
@@ -189,7 +189,7 @@ if archivo_cargado:
                 tabla_pivot = resumen_grupo.pivot(index='grupo_equipo', columns='clasificacion', values='porcentaje_productivo').fillna(0)
                 tabla_pivot = tabla_pivot[['Bajo', 'Medio', 'Alto']]
 
-                fig2, ax2 = plt.subplots(figsize=(5, 3))  # Gráfico más pequeño
+                fig2, ax2 = plt.subplots(figsize=(5, 2))  # Gráfico más pequeño
                 tabla_pivot.plot(kind='bar', stacked=True, color=['#ef5350', '#ffa726', '#66bb6a'], ax=ax2)
                 ax2.set_ylabel('Porcentaje Productivo (%)')
                 ax2.set_title('Clasificación por Grupo de Equipo')
@@ -329,11 +329,12 @@ if archivo_cargado:
                     st.warning("No se encontró velocidad > 7 km/h para este equipo. No se pueden calcular inicio/fin de labores.")
 
                 # 🗺️ MAPA REDIMENSIONADO — más compacto
-                st_folium(mapa, width=650, height=400)
+                st_folium(mapa, width=1000, height=600)
 
 else:
     st.info("⬅️ Por favor, cargue un archivo para comenzar.")
 #python -m streamlit run c:/Users/sacor/Downloads/resumen_monitoreo3.py
+
 
 
 
