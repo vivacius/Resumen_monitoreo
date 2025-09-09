@@ -8,20 +8,92 @@ from folium.plugins import MarkerCluster, AntPath
 from streamlit_folium import st_folium
 from geopy.distance import geodesic
 
-st.set_page_config(page_title="Monitoreo de Productividad de Equipos", layout="wide")
+# 🌙🌙🌙 Inicializar estado del tema
+if 'tema_oscuro' not in st.session_state:
+    st.session_state.tema_oscuro = False  # Por defecto: claro
 
-st.markdown("""
-<style>
-.stApp { background-color: #f9fbfc; color: #222; font-family: 'Segoe UI', sans-serif; }
-[data-testid="stSidebar"] { width: 280px; background-color: #1f4e79; color: white; font-weight: bold; }
-[data-testid="stSidebar"] .css-1d391kg, .stRadio label { color: white !important; }
-.stTabs [data-baseweb="tab"] {
-    background-color: #e8f0f7; color: #000; border-radius: 10px 10px 0 0; padding: 10px;
-}
-.stTabs [data-baseweb="tab"]:hover { color: #1f4e79; }
-.stTabs [aria-selected="true"] { background-color: #1f4e79; color: white; }
-</style>
-""", unsafe_allow_html=True)
+# 🌙🌙🌙 Función para aplicar tema
+def aplicar_tema():
+    if st.session_state.tema_oscuro:
+        # Tema oscuro
+        bg_main = "#121212"
+        color_main = "#ffffff"
+        bg_sidebar = "#1e3a5f"
+        color_sidebar = "#ffffff"
+        bg_tabs = "#1e2a3a"
+        color_tabs = "#e0e0e0"
+        bg_tab_active = "#2d4a70"
+        color_tab_active = "#ffffff"
+        color_plot_bg = "#1e1e1e"
+        color_plot_text = "#ffffff"
+    else:
+        # Tema claro (tus colores originales)
+        bg_main = "#f9fbfc"
+        color_main = "#222222"
+        bg_sidebar = "#1f4e79"
+        color_sidebar = "#ffffff"
+        bg_tabs = "#e8f0f7"
+        color_tabs = "#000000"
+        bg_tab_active = "#1f4e79"
+        color_tab_active = "#ffffff"
+        color_plot_bg = "#ffffff"
+        color_plot_text = "#000000"
+
+    # 🌙🌙🌙 Estilos CSS dinámicos
+    st.markdown(f"""
+    <style>
+    .stApp {{
+        background-color: {bg_main};
+        color: {color_main};
+        font-family: 'Segoe UI', sans-serif;
+    }}
+
+    /* Sidebar */
+    [data-testid="stSidebar"] {{
+        width: 280px;
+        background-color: {bg_sidebar};
+        color: {color_sidebar};
+        font-weight: bold;
+    }}
+    [data-testid="stSidebar"] * {{
+        color: {color_sidebar} !important;
+    }}
+
+    /* Tabs */
+    .stTabs [data-baseweb="tab"] {{
+        background-color: {bg_tabs};
+        color: {color_tabs};
+        border-radius: 10px 10px 0 0;
+        padding: 10px;
+    }}
+    .stTabs [data-baseweb="tab"]:hover {{
+        color: {bg_tab_active};
+    }}
+    .stTabs [aria-selected="true"] {{
+        background-color: {bg_tab_active};
+        color: {color_tab_active};
+    }}
+
+    /* Gráficos: fondo y texto */
+    .stPlotlyChart, .stPyplot {{
+        background-color: {color_plot_bg} !important;
+    }}
+    </style>
+    """, unsafe_allow_html=True)
+
+    # 🌙🌙🌙 Configurar estilo de matplotlib para que coincida
+    plt.rcParams.update({
+        'axes.facecolor': color_plot_bg,
+        'figure.facecolor': color_plot_bg,
+        'text.color': color_plot_text,
+        'axes.labelcolor': color_plot_text,
+        'xtick.color': color_plot_text,
+        'ytick.color': color_plot_text,
+        'axes.edgecolor': color_plot_text
+    })
+
+# 🌙🌙🌙 Aplicar tema actual al cargar
+aplicar_tema()
 
 @st.cache_data
 def cargar_datos(archivo):
@@ -36,7 +108,16 @@ def cargar_datos(archivo):
     df.rename(columns={'Grupo Equipo/Frente': 'grupo_equipo'}, inplace=True)
     return df.dropna(axis=1, how='all')
 
+# 🌙🌙🌙 Panel de control con toggle de tema
 st.sidebar.title("🔧 Panel de Control")
+
+# 🌙🌙🌙 Toggle de tema
+st.sidebar.markdown("### 🎨 Tema")
+tema_actual = st.sidebar.toggle("🌙 Modo Oscuro", value=st.session_state.tema_oscuro)
+if tema_actual != st.session_state.tema_oscuro:
+    st.session_state.tema_oscuro = tema_actual
+    st.rerun()  # Recargar para aplicar cambios
+
 archivo_cargado = st.sidebar.file_uploader("📁 Cargar archivo .txt", type=["txt"])
 
 if archivo_cargado:
@@ -94,7 +175,7 @@ if archivo_cargado:
                         'PRODUCTIVO': 'green',
                         'NAO CADASTRADO':'grey'
                     }
-                    fig, ax = plt.subplots(figsize=(8, 4))
+                    fig, ax = plt.subplots(figsize=(6, 3))  # 🌙 Reducido
                     sns.barplot(data=resumen, x='Grupo Operacion', y='Cantidad', palette=colores_personalizados, ax=ax)
                     ax.set_title("Equipos por Estado Operativo")
                     ax.set_ylim(0, resumen['Cantidad'].max() * 1.2)
@@ -113,7 +194,7 @@ if archivo_cargado:
             resumen['tiempo_total_horas'] = resumen['tiempo_total_seg'] / 3600
             resumen['tiempo_productivo_horas'] = resumen['tiempo_productivo_seg'] / 3600
 
-            fig, ax = plt.subplots()
+            fig, ax = plt.subplots(figsize=(6, 3))  # 🌙 Reducido
             ax.hist(resumen['porcentaje_productivo'], bins=10, color='#4fc3f7', edgecolor='black')
             ax.set_title('Distribución de Productividad (%)')
             ax.set_xlabel('% Productivo')
@@ -155,7 +236,7 @@ if archivo_cargado:
             col1, col2 = st.columns(2)
             with col1:
                 clasif_counts = resumen['clasificacion'].value_counts().sort_index()
-                fig1, ax1 = plt.subplots(figsize=(4, 4))
+                fig1, ax1 = plt.subplots(figsize=(3, 3))  # 🌙 Reducido
                 ax1.pie(clasif_counts, labels=clasif_counts.index, autopct='%1.1f%%',
                         colors=['#ef5350', '#ffa726', '#66bb6a'], startangle=90)
                 ax1.axis('equal')
@@ -178,7 +259,7 @@ if archivo_cargado:
                 tabla_pivot = resumen_grupo.pivot(index='grupo_equipo', columns='clasificacion', values='porcentaje_productivo').fillna(0)
                 tabla_pivot = tabla_pivot[['Bajo', 'Medio', 'Alto']]
 
-                fig2, ax2 = plt.subplots(figsize=(6, 4))
+                fig2, ax2 = plt.subplots(figsize=(5, 3))  # 🌙 Reducido
                 tabla_pivot.plot(kind='bar', stacked=True, color=['#ef5350', '#ffa726', '#66bb6a'], ax=ax2)
                 ax2.set_ylabel('Porcentaje Productivo (%)')
                 ax2.set_title('Clasificación por Grupo de Equipo')
@@ -221,7 +302,6 @@ if archivo_cargado:
     elif pestaña == "📍 Recorrido y Hora Inicio Labor":
         st.header("📍 Visualización de Recorridos y Hora de Inicio de Labores")
 
-        # Verificar que las columnas necesarias existan
         columnas_requeridas = ['Latitud', 'Longitud', 'Velocidad']
         faltantes = [col for col in columnas_requeridas if col not in df_filtrado_global.columns]
 
@@ -229,13 +309,11 @@ if archivo_cargado:
             st.error(f"❌ Faltan columnas requeridas en el archivo: {', '.join(faltantes)}")
             st.stop()
 
-        # Convertir a numérico por si acaso
         for col in columnas_requeridas:
             df_filtrado_global[col] = pd.to_numeric(df_filtrado_global[col], errors='coerce')
 
         df_filtrado_global = df_filtrado_global.dropna(subset=['Latitud', 'Longitud'])
 
-        # --- RESUMEN DE HORA DE INICIO POR GRUPO ---
         st.subheader("📋 Resumen de Inicio de Labores por Grupo Equipo / Frente")
 
         def obtener_hora_inicio_grupo(equipo_df):
@@ -259,7 +337,6 @@ if archivo_cargado:
         inicio_por_equipo_df = pd.DataFrame(inicio_por_equipo)
         st.dataframe(inicio_por_equipo_df, use_container_width=True)
 
-        # --- SELECCIÓN DE EQUIPO Y VISUALIZACIÓN DE MAPA ---
         equipos_disponibles = df_filtrado_global['Equipo'].unique()
         if len(equipos_disponibles) == 0:
             st.warning("No hay equipos disponibles con datos geográficos.")
@@ -271,18 +348,15 @@ if archivo_cargado:
             if datos_equipo.empty:
                 st.error("No hay datos para este equipo.")
             else:
-                # Crear mapa
                 centro = [datos_equipo['Latitud'].mean(), datos_equipo['Longitud'].mean()]
                 mapa = folium.Map(location=centro, zoom_start=13)
 
-                # Línea animada (AntPath)
                 puntos_linea = [[row['Latitud'], row['Longitud']] for _, row in datos_equipo.iterrows()]
                 if len(puntos_linea) >= 2:
                     AntPath(locations=puntos_linea, color='green', weight=4, delay=800).add_to(mapa)
                 else:
                     st.warning("No hay suficientes puntos para trazar la ruta.")
 
-                # Cluster de paradas (PERDIDA o MANTENIMIENTO)
                 cluster = MarkerCluster().add_to(mapa)
                 paradas = []
 
@@ -298,7 +372,6 @@ if archivo_cargado:
                         icon=Icon(color='red', icon='cloud', prefix='fa')
                     ).add_to(cluster)
 
-                # Calcular inicio y fin de labores (velocidad > 7)
                 datos_labor = datos_equipo[datos_equipo['Velocidad'] > 7]
                 if not datos_labor.empty:
                     inicio = datos_labor['Fecha/Hora'].iloc[0]
@@ -308,7 +381,6 @@ if archivo_cargado:
                     puntos_labor = list(zip(datos_labor['Latitud'], datos_labor['Longitud']))
                     distancia = sum(geodesic(p1, p2).meters for p1, p2 in zip(puntos_labor[:-1], puntos_labor[1:]))
 
-                    # Marcadores de inicio y fin
                     Marker(
                         location=[datos_labor['Latitud'].iloc[0], datos_labor['Longitud'].iloc[0]],
                         icon=Icon(color='green', icon='play')
@@ -318,7 +390,6 @@ if archivo_cargado:
                         icon=Icon(color='red', icon='stop')
                     ).add_to(mapa)
 
-                    # Mostrar estadísticas
                     st.subheader("📊 Estadísticas de Labor")
                     st.write(f"**Hora de inicio:** {inicio.strftime('%d/%m/%Y %H:%M:%S')}")
                     st.write(f"**Hora de fin:** {fin.strftime('%d/%m/%Y %H:%M:%S')}")
@@ -327,10 +398,10 @@ if archivo_cargado:
                 else:
                     st.warning("No se encontró velocidad > 7 km/h para este equipo. No se pueden calcular inicio/fin de labores.")
 
-                # Mostrar mapa
                 st_folium(mapa, width=700, height=500)
 
 else:
     st.info("⬅️ Por favor, cargue un archivo para comenzar.")
 #python -m streamlit run c:/Users/sacor/Downloads/resumen_monitoreo3.py
+
 
