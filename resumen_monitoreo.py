@@ -105,7 +105,7 @@ if archivo_cargado:
                         'PRODUCTIVO': 'green',
                         'NAO CADASTRADO':'grey'
                     }
-                    fig, ax = plt.subplots(figsize=(6, 3))  # Gráfico más pequeño
+                    fig, ax = plt.subplots(figsize=(8, 2))  # Gráfico más pequeño
                     sns.barplot(data=resumen, x='Grupo Operacion', y='Cantidad', palette=colores_personalizados, ax=ax)
                     ax.set_title("Equipos por Estado Operativo")
                     ax.set_ylim(0, resumen['Cantidad'].max() * 1.2)
@@ -334,6 +334,7 @@ if archivo_cargado:
 else:
     st.info("⬅️ Por favor, cargue un archivo para comenzar.")
 #python -m streamlit run c:/Users/sacor/Downloads/resumen_monitoreo3.py
+
 
 
 
