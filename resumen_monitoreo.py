@@ -11,7 +11,11 @@ from geopy.distance import geodesic
 # 🎨 Estilos CSS fijos (claro, como original + mejoras solicitadas)
 st.markdown("""
 <style>
-.stApp { background-color: #f9fbfc; color: #222; font-family: 'Segoe UI', sans-serif; }
+.stApp { 
+    background-color: #f9fbfc; 
+    color: #222; 
+    font-family: 'Segoe UI', sans-serif; 
+}
 
 /* Sidebar completo: fondo azul oscuro y texto blanco en TODO */
 [data-testid="stSidebar"] {
@@ -27,10 +31,34 @@ st.markdown("""
 
 /* Estilos de las pestañas principales */
 .stTabs [data-baseweb="tab"] {
-    background-color: #e8f0f7; color: #000; border-radius: 10px 10px 0 0; padding: 10px;
+    background-color: #e8f0f7; 
+    color: #000; 
+    border-radius: 10px 10px 0 0; 
+    padding: 10px;
+    font-weight: bold;
 }
-.stTabs [data-baseweb="tab"]:hover { color: #1f4e79; }
-.stTabs [aria-selected="true"] { background-color: #1f4e79; color: white; }
+.stTabs [data-baseweb="tab"]:hover { 
+    color: #1f4e79; 
+}
+.stTabs [aria-selected="true"] { 
+    background-color: #1f4e79; 
+    color: white; 
+}
+
+/* ✅ FORZAR QUE EL CONTENIDO DENTRO DE LAS PESTAÑAS OCUPEN TODO EL ANCHO */
+.stTabs [data-baseweb="tab-panel"] {
+    padding: 0 !important;
+}
+.stTabs [data-baseweb="tab-panel"] > div {
+    width: 100% !important;
+    max-width: none !important;
+    padding: 1rem 0 !important; /* Reduce padding vertical, elimina horizontal */
+}
+
+/* Opcional: hacer que los dataframes y gráficos dentro de tabs también se expandan */
+.stTabs .stDataFrame, .stTabs .stPlotlyChart, .stTabs .stPyplot {
+    width: 100% !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -501,6 +529,7 @@ if archivo_cargado:
 else:
     st.info("⬅️ Por favor, cargue un archivo para comenzar.")
 #python -m streamlit run c:/Users/sacor/Downloads/resumen_monitoreo3.py
+
 
 
 
