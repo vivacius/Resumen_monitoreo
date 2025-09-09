@@ -275,8 +275,7 @@ if archivo_cargado:
             buf.seek(0)
             return buf
 
-             # Función para generar el PDF (versión compatible con Streamlit Cloud - SIN EMOJIS)
-               # Función para generar el PDF (versión FINAL - 100% compatible con Streamlit Cloud)
+               # Función para generar el PDF (versión FINAL PULIDA - Streamlit Cloud)
         def generar_pdf_reporte(grafico_buf, alertas_df, comentarios_agrupados, grupos_seleccionados):
             pdf = FPDF()
             pdf.add_page()
@@ -305,7 +304,33 @@ if archivo_cargado:
                 import os
                 os.remove(temp_img)  # Limpiar archivo temporal
 
-            # Tabla de alertas
+            # ==============================================
+            # PRIMERO: Resumen de Comentarios Agrupados
+            # ==============================================
+            pdf.set_font("Arial", "B", 12)
+            pdf.cell(0, 10, "RESUMEN DE COMENTARIOS AGRUPADOS", ln=True)
+            pdf.ln(3)
+
+            pdf.set_font("Arial", "", 10)
+            if not comentarios_agrupados.empty:
+                for _, fila in comentarios_agrupados.iterrows():
+                    # Eliminar cualquier emoji y texto entre [ ] → solo texto limpio
+                    comentario_limpio = fila['comentario']
+                    comentario_limpio = comentario_limpio.replace('🛠', '').replace('[MANTENIMIENTO]', '').strip()
+                    comentario_limpio = comentario_limpio.replace('🟥', '').replace('[PARADO]', '').strip()
+                    comentario_limpio = comentario_limpio.replace('🚨', '').replace('[INACTIVO >80%]', '').strip()
+                    comentario_limpio = comentario_limpio.replace('🔔', '').replace('[ALTA INACTIVIDAD]', '').strip()
+                    # Limpiar espacios dobles o iniciales/finale
+                    comentario_limpio = ' '.join(comentario_limpio.split())
+                    pdf.cell(0, 8, f"- Equipos {fila['equipos']}: {comentario_limpio}", ln=True)
+            else:
+                pdf.cell(0, 8, "No hay equipos con inactividad crítica.", ln=True)
+
+            pdf.ln(10)
+
+            # ==============================================
+            # SEGUNDO: Tabla Detallada de Alertas
+            # ==============================================
             pdf.set_font("Arial", "B", 12)
             pdf.cell(0, 10, "TABLA DETALLADA DE ALERTAS", ln=True)
             pdf.ln(3)
@@ -318,42 +343,24 @@ if archivo_cargado:
 
             pdf.set_font("Arial", "", 10)
             for _, row in alertas_df.iterrows():
-                # Reemplazar emojis por texto descriptivo
+                # Mismo proceso de limpieza para la tabla
                 comentario_limpio = row['comentario']
-                comentario_limpio = comentario_limpio.replace('🛠', '[MANTENIMIENTO]')
-                comentario_limpio = comentario_limpio.replace('🟥', '[PARADO]')
-                comentario_limpio = comentario_limpio.replace('🚨', '[INACTIVO >80%]')
-                comentario_limpio = comentario_limpio.replace('🔔', '[ALTA INACTIVIDAD]')
+                comentario_limpio = comentario_limpio.replace('🛠', '').replace('[MANTENIMIENTO]', '').strip()
+                comentario_limpio = comentario_limpio.replace('🟥', '').replace('[PARADO]', '').strip()
+                comentario_limpio = comentario_limpio.replace('🚨', '').replace('[INACTIVO >80%]', '').strip()
+                comentario_limpio = comentario_limpio.replace('🔔', '').replace('[ALTA INACTIVIDAD]', '').strip()
+                comentario_limpio = ' '.join(comentario_limpio.split())
                 pdf.cell(30, 10, str(row.name), 1)
                 pdf.cell(50, 10, f"{row['% alerta total']:.1f}%", 1)
                 pdf.cell(0, 10, comentario_limpio, 1, 1)
 
-            pdf.ln(10)
-
-            # Comentarios agrupados
-            pdf.set_font("Arial", "B", 12)
-            pdf.cell(0, 10, "RESUMEN DE COMENTARIOS AGRUPADOS", ln=True)
-            pdf.ln(3)
-
-            pdf.set_font("Arial", "", 10)
-            if not comentarios_agrupados.empty:
-                for _, fila in comentarios_agrupados.iterrows():
-                    comentario_limpio = fila['comentario']
-                    comentario_limpio = comentario_limpio.replace('🛠', '[MANTENIMIENTO]')
-                    comentario_limpio = comentario_limpio.replace('🟥', '[PARADO]')
-                    comentario_limpio = comentario_limpio.replace('🚨', '[INACTIVO >80%]')
-                    comentario_limpio = comentario_limpio.replace('🔔', '[ALTA INACTIVIDAD]')
-                    pdf.cell(0, 8, f"- Equipos {fila['equipos']}: {comentario_limpio}", ln=True)
-            else:
-                pdf.cell(0, 8, "No hay equipos con inactividad crítica.", ln=True)
-
             pdf.ln(15)
 
-            # Pie de página
+            # Pie de página actualizado
             pdf.set_font("Arial", "I", 8)
-            pdf.cell(0, 10, "Generado automáticamente con Monitoreo de Productividad v1.0", 0, 1, 'C')
+            pdf.cell(0, 10, "Generado automáticamente con Monitoreo de Productividad v1.0 - Scorrea AP Maquinaria y equipos", 0, 1, 'C')
 
-            return bytes(pdf.output(dest='S'))  # 👈 Conversión explícita a bytes
+            return bytes(pdf.output(dest='S'))  # Garantiza compatibilidad
         # Botón para generar y descargar PDF
         if st.button("📥 Generar Reporte PDF"):
             with st.spinner("Generando reporte..."):
@@ -494,6 +501,7 @@ if archivo_cargado:
 else:
     st.info("⬅️ Por favor, cargue un archivo para comenzar.")
 #python -m streamlit run c:/Users/sacor/Downloads/resumen_monitoreo3.py
+
 
 
 
