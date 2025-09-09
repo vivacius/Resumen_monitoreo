@@ -383,7 +383,7 @@ if archivo_cargado:
             pdf.ln(15)
 
             pdf.set_font("Arial", "I", 8)
-            pdf.cell(0, 10, "Generado automáticamente con Monitoreo de Productividad v1.0 - Scorrea AP Maquinaria y equipos", 0, 1, 'C')
+            pdf.cell(0, 10, "Generado automáticamente con Monitoreo de Productividad v1.0 - Powered by Santiago Correa, AP Maquinaria y equipos", 0, 1, 'C')
 
             return bytes(pdf.output(dest='S'))
 
@@ -522,6 +522,7 @@ if archivo_cargado:
 else:
     st.info("⬅️ Por favor, cargue un archivo para comenzar.")
 #python -m streamlit run c:/Users/sacor/Downloads/resumen_monitoreo3.py
+
 
 
 
