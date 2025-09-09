@@ -276,6 +276,7 @@ if archivo_cargado:
             return buf
 
              # Función para generar el PDF (versión compatible con Streamlit Cloud - SIN EMOJIS)
+                # Función para generar el PDF (versión FINAL - 100% compatible con Streamlit Cloud)
         def generar_pdf_reporte(grafico_buf, alertas_df, comentarios_agrupados, grupos_seleccionados):
             pdf = FPDF()
             pdf.add_page()
@@ -304,7 +305,7 @@ if archivo_cargado:
                 import os
                 os.remove(temp_img)  # Limpiar archivo temporal
 
-            # Tabla de alertas — ¡SIN EMOJI!
+            # Tabla de alertas
             pdf.set_font("Arial", "B", 12)
             pdf.cell(0, 10, "TABLA DETALLADA DE ALERTAS", ln=True)
             pdf.ln(3)
@@ -329,7 +330,7 @@ if archivo_cargado:
 
             pdf.ln(10)
 
-            # Comentarios agrupados — ¡SIN EMOJI!
+            # Comentarios agrupados — ¡SIN EMOJIS NI CARACTERES ESPECIALES!
             pdf.set_font("Arial", "B", 12)
             pdf.cell(0, 10, "RESUMEN DE COMENTARIOS AGRUPADOS", ln=True)
             pdf.ln(3)
@@ -342,7 +343,8 @@ if archivo_cargado:
                     comentario_limpio = comentario_limpio.replace('🟥', '[PARADO]')
                     comentario_limpio = comentario_limpio.replace('🚨', '[INACTIVO >80%]')
                     comentario_limpio = comentario_limpio.replace('🔔', '[ALTA INACTIVIDAD]')
-                    pdf.cell(0, 8, f"• Equipos {fila['equipos']}: {comentario_limpio}", ln=True)
+                    # Usamos "-" en lugar de "•" para evitar errores de codificación
+                    pdf.cell(0, 8, f"- Equipos {fila['equipos']}: {comentario_limpio}", ln=True)
             else:
                 pdf.cell(0, 8, "No hay equipos con inactividad crítica.", ln=True)
 
@@ -494,6 +496,7 @@ if archivo_cargado:
 else:
     st.info("⬅️ Por favor, cargue un archivo para comenzar.")
 #python -m streamlit run c:/Users/sacor/Downloads/resumen_monitoreo3.py
+
 
 
 
