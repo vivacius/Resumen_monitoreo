@@ -228,7 +228,167 @@ if archivo_cargado:
             st.info("No se detectaron equipos con inactividad crítica.")
 
         st.dataframe(alertas)
+        # =====================================================
+        # 📄 GENERADOR DE REPORTE EN PDF - VERSIÓN STREAMLIT CLOUD
+        # =====================================================
 
+        import io
+        from fpdf import FPDF
+        from datetime import datetime
+
+        # Función para generar el gráfico de último estado (reutiliza tu lógica actual)
+        def generar_grafico_ultimo_estado_para_pdf():
+            # Reutilizamos la lógica que ya tienes arriba en tabs[0]
+            hora_opciones = sorted(df_filtrado_global['Hora'].dt.time.unique())
+            if not hora_opciones:
+                return None
+
+            # Tomamos la última hora disponible por defecto para el reporte
+            hora_str = hora_opciones[-1]  # Última hora del día
+            fecha = df_filtrado_global['Fecha/Hora'].min().date()
+            hora_obj = pd.Timestamp.combine(fecha, hora_str.replace(minute=0, second=0, microsecond=0))
+
+            df_hora = df_filtrado_global[df_filtrado_global['Hora'] == hora_obj]
+            if df_hora.empty:
+                return None
+
+            ultimo_registro = df_hora.sort_values(['Equipo', 'Fecha/Hora']).groupby('Equipo').tail(1)
+            resumen = ultimo_registro.groupby(['Grupo Operacion'])['Equipo'].nunique().reset_index(name='Cantidad')
+            colores_personalizados = {
+                'MANTENIMIENTO': 'blue',
+                'PERDIDA': 'red',
+                'PRODUCTIVO': 'green',
+                'NAO CADASTRADO': 'grey'
+            }
+
+            fig, ax = plt.subplots(figsize=(8, 4))
+            sns.barplot(data=resumen, x='Grupo Operacion', y='Cantidad', palette=colores_personalizados, ax=ax)
+            ax.set_title(f"Equipos por Estado Operativo (a las {hora_str} del {fecha.strftime('%d/%m/%Y')})")
+            ax.set_ylim(0, resumen['Cantidad'].max() * 1.2)
+            for container in ax.containers:
+                ax.bar_label(container, label_type='edge', padding=3)
+
+            # Guardar gráfico en buffer de memoria
+            buf = io.BytesIO()
+            fig.savefig(buf, format='png', dpi=150, bbox_inches='tight')
+            plt.close(fig)
+            buf.seek(0)
+            return buf
+
+        # Función para generar el PDF (versión compatible con Streamlit Cloud)
+        def generar_pdf_reporte(grafico_buf, alertas_df, comentarios_agrupados, grupos_seleccionados):
+            pdf = FPDF()
+            pdf.add_page()
+
+            # Usar fuentes estándar (no requiere archivos externos)
+            pdf.set_font("Arial", "B", 16)
+
+            # Título
+            pdf.cell(0, 10, "REPORTE DE ALERTAS OPERATIVAS", ln=True, align='C')
+            pdf.ln(5)
+
+            # Metadatos
+            pdf.set_font("Arial", "", 10)
+            fecha_gen = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+            pdf.cell(0, 8, f"Fecha de generación: {fecha_gen}", ln=True)
+            pdf.cell(0, 8, f"Grupos incluidos: {', '.join(grupos_seleccionados)}", ln=True)
+            pdf.ln(10)
+
+            # Insertar gráfico si existe
+            if grafico_buf:
+                temp_img = "temp_grafico_reporte.png"
+                with open(temp_img, "wb") as f:
+                    f.write(grafico_buf.read())
+                pdf.image(temp_img, x=15, w=180)
+                pdf.ln(10)
+                import os
+                os.remove(temp_img)  # Limpiar archivo temporal
+
+            # Tabla de alertas
+            pdf.set_font("Arial", "B", 12)
+            pdf.cell(0, 10, "📋 Tabla Detallada de Alertas", ln=True)
+            pdf.ln(3)
+
+            pdf.set_font("Arial", "B", 10)
+            pdf.set_fill_color(200, 220, 255)
+            pdf.cell(30, 10, "Equipo", 1, 0, 'C', 1)
+            pdf.cell(50, 10, "% Alerta Total", 1, 0, 'C', 1)
+            pdf.cell(0, 10, "Comentario", 1, 1, 'C', 1)
+
+            pdf.set_font("Arial", "", 10)
+            for _, row in alertas_df.iterrows():
+                # Reemplazar emojis por texto descriptivo
+                comentario_limpio = row['comentario']
+                comentario_limpio = comentario_limpio.replace('🛠', '[MANTENIMIENTO]')
+                comentario_limpio = comentario_limpio.replace('🟥', '[PARADO]')
+                comentario_limpio = comentario_limpio.replace('🚨', '[INACTIVO >80%]')
+                comentario_limpio = comentario_limpio.replace('🔔', '[ALTA INACTIVIDAD]')
+                pdf.cell(30, 10, str(row.name), 1)
+                pdf.cell(50, 10, f"{row['% alerta total']:.1f}%", 1)
+                pdf.cell(0, 10, comentario_limpio, 1, 1)
+
+            pdf.ln(10)
+
+            # Comentarios agrupados
+            pdf.set_font("Arial", "B", 12)
+            pdf.cell(0, 10, "💬 Resumen de Comentarios Agrupados", ln=True)
+            pdf.ln(3)
+
+            pdf.set_font("Arial", "", 10)
+            if not comentarios_agrupados.empty:
+                for _, fila in comentarios_agrupados.iterrows():
+                    comentario_limpio = fila['comentario']
+                    comentario_limpio = comentario_limpio.replace('🛠', '[MANTENIMIENTO]')
+                    comentario_limpio = comentario_limpio.replace('🟥', '[PARADO]')
+                    comentario_limpio = comentario_limpio.replace('🚨', '[INACTIVO >80%]')
+                    comentario_limpio = comentario_limpio.replace('🔔', '[ALTA INACTIVIDAD]')
+                    pdf.cell(0, 8, f"• Equipos {fila['equipos']}: {comentario_limpio}", ln=True)
+            else:
+                pdf.cell(0, 8, "No hay equipos con inactividad crítica.", ln=True)
+
+            pdf.ln(15)
+
+            # Pie de página
+            pdf.set_font("Arial", "I", 8)
+            pdf.cell(0, 10, "Generado automáticamente con Monitoreo de Productividad v1.0", 0, 1, 'C')
+
+            return pdf.output(dest='S').encode('latin1')
+
+        # Botón para generar y descargar PDF
+        if st.button("📥 Generar Reporte PDF"):
+            with st.spinner("Generando reporte..."):
+                # 1. Generar gráfico
+                buf_grafico = generar_grafico_ultimo_estado_para_pdf()
+
+                # 2. Preparar tabla de alertas (solo columnas clave)
+                alertas_para_pdf = alertas[['% alerta total', 'comentario']].copy()
+
+                # 3. Preparar comentarios agrupados (el mismo que ya muestras)
+                if not comentarios.empty:
+                    agrupado_para_pdf = alertas.groupby('comentario').apply(lambda df: ', '.join(df.index.astype(str))).reset_index(name='equipos')
+                else:
+                    agrupado_para_pdf = pd.DataFrame({'comentario': [], 'equipos': []})
+
+                # 4. Generar PDF
+                try:
+                    pdf_bytes = generar_pdf_reporte(
+                        buf_grafico,
+                        alertas_para_pdf,
+                        agrupado_para_pdf,
+                        grupos_seleccionados
+                    )
+
+                    st.success("✅ ¡Reporte generado con éxito!")
+
+                    # 5. Botón de descarga
+                    st.download_button(
+                        label="⬇️ Descargar Reporte Operativo (PDF)",
+                        data=pdf_bytes,
+                        file_name=f"reporte_alertas_{datetime.now().strftime('%d-%m-%Y_%H-%M')}.pdf",
+                        mime="application/pdf"
+                    )
+                except Exception as e:
+                    st.error(f"Error al generar el PDF: {e}")
     elif pestaña == "📍 Recorrido y Hora Inicio Labor":
         st.header("📍 Visualización de Recorridos y Hora de Inicio de Labores")
 
@@ -334,6 +494,7 @@ if archivo_cargado:
 else:
     st.info("⬅️ Por favor, cargue un archivo para comenzar.")
 #python -m streamlit run c:/Users/sacor/Downloads/resumen_monitoreo3.py
+
 
 
 
