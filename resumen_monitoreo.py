@@ -275,7 +275,7 @@ if archivo_cargado:
             buf.seek(0)
             return buf
 
-        # Función para generar el PDF (versión compatible con Streamlit Cloud)
+             # Función para generar el PDF (versión compatible con Streamlit Cloud - SIN EMOJIS)
         def generar_pdf_reporte(grafico_buf, alertas_df, comentarios_agrupados, grupos_seleccionados):
             pdf = FPDF()
             pdf.add_page()
@@ -283,7 +283,7 @@ if archivo_cargado:
             # Usar fuentes estándar (no requiere archivos externos)
             pdf.set_font("Arial", "B", 16)
 
-            # Título
+            # Título principal
             pdf.cell(0, 10, "REPORTE DE ALERTAS OPERATIVAS", ln=True, align='C')
             pdf.ln(5)
 
@@ -304,9 +304,9 @@ if archivo_cargado:
                 import os
                 os.remove(temp_img)  # Limpiar archivo temporal
 
-            # Tabla de alertas
+            # Tabla de alertas — ¡SIN EMOJI!
             pdf.set_font("Arial", "B", 12)
-            pdf.cell(0, 10, "📋 Tabla Detallada de Alertas", ln=True)
+            pdf.cell(0, 10, "TABLA DETALLADA DE ALERTAS", ln=True)
             pdf.ln(3)
 
             pdf.set_font("Arial", "B", 10)
@@ -329,9 +329,9 @@ if archivo_cargado:
 
             pdf.ln(10)
 
-            # Comentarios agrupados
+            # Comentarios agrupados — ¡SIN EMOJI!
             pdf.set_font("Arial", "B", 12)
-            pdf.cell(0, 10, "💬 Resumen de Comentarios Agrupados", ln=True)
+            pdf.cell(0, 10, "RESUMEN DE COMENTARIOS AGRUPADOS", ln=True)
             pdf.ln(3)
 
             pdf.set_font("Arial", "", 10)
@@ -494,6 +494,7 @@ if archivo_cargado:
 else:
     st.info("⬅️ Por favor, cargue un archivo para comenzar.")
 #python -m streamlit run c:/Users/sacor/Downloads/resumen_monitoreo3.py
+
 
 
 
