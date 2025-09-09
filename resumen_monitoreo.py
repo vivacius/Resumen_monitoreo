@@ -353,8 +353,7 @@ if archivo_cargado:
             pdf.set_font("Arial", "I", 8)
             pdf.cell(0, 10, "Generado automáticamente con Monitoreo de Productividad v1.0", 0, 1, 'C')
 
-            return pdf.output(dest='S')  # 👈 ¡Así es, SIN .encode()!
-
+            return bytes(pdf.output(dest='S'))  # 👈 Conversión explícita a bytes
         # Botón para generar y descargar PDF
         if st.button("📥 Generar Reporte PDF"):
             with st.spinner("Generando reporte..."):
@@ -495,6 +494,7 @@ if archivo_cargado:
 else:
     st.info("⬅️ Por favor, cargue un archivo para comenzar.")
 #python -m streamlit run c:/Users/sacor/Downloads/resumen_monitoreo3.py
+
 
 
 
