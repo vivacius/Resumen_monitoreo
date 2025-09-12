@@ -325,7 +325,7 @@ if archivo_cargado:
             pdf.ln(5)
 
             pdf.set_font("Arial", "", 10)
-            fecha_gen = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+            fecha_gen = datetime.now().strftime("%d/%m/%Y")
             pdf.cell(0, 8, f"Fecha de generación: {fecha_gen}", ln=True)
             pdf.cell(0, 8, f"Grupos incluidos: {', '.join(grupos_seleccionados)}", ln=True)
             pdf.ln(10)
@@ -522,6 +522,7 @@ if archivo_cargado:
 else:
     st.info("⬅️ Por favor, cargue un archivo para comenzar.")
 #python -m streamlit run c:/Users/sacor/Downloads/resumen_monitoreo3.py
+
 
 
 
